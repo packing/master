@@ -1,41 +1,41 @@
 package main
 
 import (
-    "nbpyraw/nnet"
     "sync"
 
+    "github.com/packing/nbpy/nnet"
     "github.com/packing/nbpy/codecs"
     "github.com/packing/nbpy/messages"
 )
 
 type SlaveInfo struct {
-    pid int
-    host string
-    vmFree int
+    pid      int
+    host     string
+    vmFree   int
     unixAddr string
 }
 
 type AdapterInfo struct {
-    pid int
-    host string
-    connection int
-    unixAddr string
+    pid         int
+    host        string
+    connection  int
+    unixAddr    string
     unixMsgAddr string
 }
 
 type GatewayInfo struct {
-    pid int
+    pid  int
     host string
     addr string
 }
 
 var (
-    GlobalSlaves = make(map[nnet.SessionID] SlaveInfo)
-    GlobalAdapters = make(map[nnet.SessionID] AdapterInfo)
-    GlobalGateways = make(map[nnet.SessionID] GatewayInfo)
+    GlobalSlaves   = make(map[nnet.SessionID]SlaveInfo)
+    GlobalAdapters = make(map[nnet.SessionID]AdapterInfo)
+    GlobalGateways = make(map[nnet.SessionID]GatewayInfo)
 
     adapterLock sync.Mutex
-    slaveLock sync.Mutex
+    slaveLock   sync.Mutex
     gatewayLock sync.Mutex
 )
 
