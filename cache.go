@@ -30,130 +30,161 @@ type GatewayInfo struct {
 }
 
 var (
-    GlobalSlaves   = make(map[nnet.SessionID]SlaveInfo)
-    GlobalAdapters = make(map[nnet.SessionID]AdapterInfo)
-    GlobalGateways = make(map[nnet.SessionID]GatewayInfo)
-
-    adapterLock sync.Mutex
-    slaveLock   sync.Mutex
-    gatewayLock sync.Mutex
+    GlobalSlaves   = new(sync.Map)
+    GlobalAdapters = new(sync.Map)
+    GlobalGateways = new(sync.Map)
 )
 
 func addAdapter(adapterId nnet.SessionID, ai AdapterInfo) {
-    adapterLock.Lock()
-    defer adapterLock.Unlock()
-    GlobalAdapters[adapterId] = ai
+    GlobalAdapters.Store(adapterId, ai)
 }
 
 func getAdapters() codecs.IMSlice {
-    adapterLock.Lock()
-    defer adapterLock.Unlock()
-    slice := make(codecs.IMSlice, len(GlobalAdapters))
-    i := 0
-    for k, v := range GlobalAdapters {
+    slice := make(codecs.IMSlice, 0)
+    GlobalAdapters.Range(func(key, value interface{}) bool {
+        v, ok := value.(AdapterInfo)
+        if !ok {
+            return false
+        }
         a := make(codecs.IMMap)
-        a[messages.ProtocolKeySessionId] = k
+        a[messages.ProtocolKeySessionId] = key
         a[messages.ProtocolKeyId] = v.pid
         a[messages.ProtocolKeyUnixAddr] = v.unixAddr
         a[messages.ProtocolKeyHost] = v.host
         a[messages.ProtocolKeyUnixMsgAddr] = v.unixMsgAddr
         a[messages.ProtocolKeyValue] = v.connection
-        slice[i] = a
-    }
+        slice = append(slice, a)
+        return true
+    })
     return slice
 }
 
 func eachAdapters(fn func(k nnet.SessionID, v AdapterInfo)) {
-    adapterLock.Lock()
-    defer adapterLock.Unlock()
-    for k, v := range GlobalAdapters {
+    GlobalAdapters.Range(func(key, value interface{}) bool {
+        k, ok := key.(nnet.SessionID)
+        if !ok {
+            return false
+        }
+        v, ok := value.(AdapterInfo)
+        if !ok {
+            return false
+        }
         fn(k, v)
-    }
+        return true
+    })
 }
 
 func updateAdapter(adapterId nnet.SessionID, connection int) {
-    adapterLock.Lock()
-    defer adapterLock.Unlock()
-    ai, ok := GlobalAdapters[adapterId]
+    value, ok := GlobalAdapters.Load(adapterId)
     if ok {
-        ai.connection = connection
-        GlobalAdapters[adapterId] = ai
+        v, ok := value.(AdapterInfo)
+        if !ok {
+            return
+        }
+        v.connection = connection
+        GlobalAdapters.Store(adapterId, v)
     }
 }
 
 func getAdapter(adapterId nnet.SessionID) *AdapterInfo {
-    adapterLock.Lock()
-    defer adapterLock.Unlock()
-    ai, ok := GlobalAdapters[adapterId]
+    value, ok := GlobalAdapters.Load(adapterId)
     if ok {
-        return &ai
+        v, ok := value.(AdapterInfo)
+        if ok {
+            return &v
+        }
     }
     return nil
 }
 
 func delAdapter(adapterId nnet.SessionID) {
-    adapterLock.Lock()
-    defer adapterLock.Unlock()
-    delete(GlobalAdapters, adapterId)
+    GlobalAdapters.Delete(adapterId)
 }
 
 func addSlave(slaveId nnet.SessionID, si SlaveInfo) {
-    slaveLock.Lock()
-    defer slaveLock.Unlock()
-    GlobalSlaves[slaveId] = si
+    GlobalSlaves.Store(slaveId, si)
 }
 
 func getSlaves() codecs.IMSlice {
-    slaveLock.Lock()
-    defer slaveLock.Unlock()
-    slice := make(codecs.IMSlice, len(GlobalSlaves))
-    i := 0
-    for k, v := range GlobalSlaves {
+    slice := make(codecs.IMSlice, 0)
+    GlobalSlaves.Range(func(key, value interface{}) bool {
+        v, ok := value.(SlaveInfo)
+        if !ok {
+            return false
+        }
         a := make(codecs.IMMap)
-        a[messages.ProtocolKeySessionId] = k
+        a[messages.ProtocolKeySessionId] = key
         a[messages.ProtocolKeyId] = v.pid
         a[messages.ProtocolKeyUnixAddr] = v.unixAddr
         a[messages.ProtocolKeyHost] = v.host
         a[messages.ProtocolKeyValue] = v.vmFree
-        slice[i] = a
-    }
+        slice = append(slice, a)
+        return true
+    })
     return slice
 }
 
 func updateSlave(slaveId nnet.SessionID, vmFree int) {
-    slaveLock.Lock()
-    defer slaveLock.Unlock()
-    si, ok := GlobalSlaves[slaveId]
+    value, ok := GlobalSlaves.Load(slaveId)
     if ok {
-        si.vmFree = vmFree
-        GlobalSlaves[slaveId] = si
+        v, ok := value.(SlaveInfo)
+        if !ok {
+            return
+        }
+        v.vmFree = vmFree
+        GlobalSlaves.Store(slaveId, v)
     }
 }
 
 func getSlave(slaveId nnet.SessionID) *SlaveInfo {
-    slaveLock.Lock()
-    defer slaveLock.Unlock()
-    si, ok := GlobalSlaves[slaveId]
+    value, ok := GlobalSlaves.Load(slaveId)
     if ok {
-        return &si
+        v, ok := value.(SlaveInfo)
+        if ok {
+            return &v
+        }
     }
     return nil
 }
 
 func delSlave(slaveId nnet.SessionID) {
-    slaveLock.Lock()
-    defer slaveLock.Unlock()
-    delete(GlobalSlaves, slaveId)
+    GlobalSlaves.Delete(slaveId)
+}
+
+func eachSlaves(fn func(k nnet.SessionID, v SlaveInfo)) {
+    GlobalSlaves.Range(func(key, value interface{}) bool {
+        k, ok := key.(nnet.SessionID)
+        if !ok {
+            return false
+        }
+        v, ok := value.(SlaveInfo)
+        if !ok {
+            return false
+        }
+        fn(k, v)
+        return true
+    })
 }
 
 func addGateway(gatewayId nnet.SessionID, gi GatewayInfo) {
-    gatewayLock.Lock()
-    defer gatewayLock.Unlock()
-    GlobalGateways[gatewayId] = gi
+    GlobalGateways.Store(gatewayId, gi)
 }
 
 func delGateway(gatewayId nnet.SessionID) {
-    gatewayLock.Lock()
-    defer gatewayLock.Unlock()
-    delete(GlobalGateways, gatewayId)
+    GlobalGateways.Delete(gatewayId)
+}
+
+func eachGateways(fn func(k nnet.SessionID, v GatewayInfo)) {
+    GlobalGateways.Range(func(key, value interface{}) bool {
+        k, ok := key.(nnet.SessionID)
+        if !ok {
+            return false
+        }
+        v, ok := value.(GatewayInfo)
+        if !ok {
+            return false
+        }
+        fn(k, v)
+        return true
+    })
 }

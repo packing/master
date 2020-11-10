@@ -27,13 +27,6 @@ func OnBye(c nnet.Controller) error {
 }
 
 func notifySlaveCome(sessionid nnet.SessionID, si SlaveInfo) {
-    var targets = make([]nnet.SessionID, 0)
-    adapterLock.Lock()
-    for k := range GlobalAdapters {
-        targets = append(targets, k)
-    }
-    adapterLock.Unlock()
-
     msg := messages.CreateS2SMessage(messages.ProtocolTypeSlaveCome)
 
     a := make(codecs.IMMap)
@@ -48,23 +41,13 @@ func notifySlaveCome(sessionid nnet.SessionID, si SlaveInfo) {
 
     pck, err := messages.DataFromMessage(msg)
     if err == nil {
-        for _, v := range targets {
-            tcp.Send(v, pck)
-        }
+        eachAdapters(func(k nnet.SessionID, v AdapterInfo) {
+            tcp.Send(k, pck)
+        })
     }
 }
 
 func notifyAdapterCome(sessionid nnet.SessionID, ai AdapterInfo) {
-
-    var targets = make([]nnet.SessionID, 0)
-    utils.LogInfo("notifyAdapterCome Lock")
-    gatewayLock.Lock()
-    for k := range GlobalGateways {
-        targets = append(targets, k)
-    }
-    gatewayLock.Unlock()
-    utils.LogInfo("notifyAdapterCome Unlock", targets)
-
     msg := messages.CreateS2SMessage(messages.ProtocolTypeAdapterCome)
 
     a := make(codecs.IMMap)
@@ -80,26 +63,17 @@ func notifyAdapterCome(sessionid nnet.SessionID, ai AdapterInfo) {
 
     pck, err := messages.DataFromMessage(msg)
     if err == nil {
-        for _, v := range targets {
-            tcp.Send(v, pck)
-        }
-    } else {
-        utils.LogInfo("操你妈的我他妈连消息编码都失败！！！！！")
+        eachGateways(func(k nnet.SessionID, v GatewayInfo) {
+            tcp.Send(k, pck)
+        })
     }
 }
 
 func notifySlaveChange(sessionid nnet.SessionID) {
-
     si := getSlave(sessionid)
     if si == nil {
         return
     }
-    var targets = make([]nnet.SessionID, 0)
-    adapterLock.Lock()
-    for k := range GlobalAdapters {
-        targets = append(targets, k)
-    }
-    adapterLock.Unlock()
 
     msg := messages.CreateS2SMessage(messages.ProtocolTypeSlaveChange)
 
@@ -115,9 +89,9 @@ func notifySlaveChange(sessionid nnet.SessionID) {
 
     pck, err := messages.DataFromMessage(msg)
     if err == nil {
-        for _, v := range targets {
-            tcp.Send(v, pck)
-        }
+        eachAdapters(func(k nnet.SessionID, v AdapterInfo) {
+            tcp.Send(k, pck)
+        })
     }
 }
 
@@ -127,15 +101,6 @@ func notifyAdapterChange(sessionid nnet.SessionID) {
     if ai == nil {
         return
     }
-
-    var targets = make([]nnet.SessionID, 0)
-    utils.LogInfo("notifyAdapterChange Lock")
-    gatewayLock.Lock()
-    for k := range GlobalGateways {
-        targets = append(targets, k)
-    }
-    gatewayLock.Unlock()
-    utils.LogInfo("notifyAdapterChange Unlock", targets)
 
     msg := messages.CreateS2SMessage(messages.ProtocolTypeAdapterChange)
 
@@ -152,22 +117,14 @@ func notifyAdapterChange(sessionid nnet.SessionID) {
 
     pck, err := messages.DataFromMessage(msg)
     if err == nil {
-        for _, v := range targets {
-            tcp.Send(v, pck)
-        }
+        eachGateways(func(k nnet.SessionID, v GatewayInfo) {
+            tcp.Send(k, pck)
+        })
     }
 }
 
 func notifySlaveBye(sessionid nnet.SessionID) {
-    var targets = make([]nnet.SessionID, 0)
-    adapterLock.Lock()
-    for k := range GlobalAdapters {
-        targets = append(targets, k)
-    }
-    adapterLock.Unlock()
-
     msg := messages.CreateS2SMessage(messages.ProtocolTypeSlaveBye)
-
     a := make(codecs.IMMap)
     a[messages.ProtocolKeySessionId] = sessionid
     msg.SetTag(messages.ProtocolTagAdapter)
@@ -175,23 +132,13 @@ func notifySlaveBye(sessionid nnet.SessionID) {
 
     pck, err := messages.DataFromMessage(msg)
     if err == nil {
-        for _, v := range targets {
-            tcp.Send(v, pck)
-        }
+        eachAdapters(func(k nnet.SessionID, v AdapterInfo) {
+            tcp.Send(k, pck)
+        })
     }
 }
 
 func notifyAdapterBye(sessionid nnet.SessionID) {
-    var targets = make([]nnet.SessionID, 0)
-    utils.LogInfo("notifyAdapterBye Lock")
-    gatewayLock.Lock()
-    for k := range GlobalGateways {
-        targets = append(targets, k)
-    }
-    gatewayLock.Unlock()
-    utils.LogInfo("notifyAdapterBye Unlock", targets)
-
-
     msg := messages.CreateS2SMessage(messages.ProtocolTypeAdapterBye)
 
     a := make(codecs.IMMap)
@@ -201,9 +148,9 @@ func notifyAdapterBye(sessionid nnet.SessionID) {
 
     pck, err := messages.DataFromMessage(msg)
     if err == nil {
-        for _, v := range targets {
-            tcp.Send(v, pck)
-        }
+        eachGateways(func(k nnet.SessionID, v GatewayInfo) {
+            tcp.Send(k, pck)
+        })
     }
 }
 
@@ -221,33 +168,15 @@ func OnSlaveSayHello(message *messages.Message) error {
     message.GetController().SetTag(messages.ProtocolTagSlave)
 
     notifySlaveCome(message.GetController().GetSessionID(), si)
-    /*
-    msg := messages.CreateS2SMessage(messages.ProtocolTypeAdapters)
-    msg.SetTag(messages.ProtocolTagSlave)
-    req := codecs.IMMap{}
-    req[messages.ProtocolKeyValue] = getAdapters()
-    msg.SetBody(req)
-    pck, err := messages.DataFromMessage(msg)
-    if err == nil {
-        message.GetController().Send(pck)
-    }*/
     return nil
 }
 
 func OnSlaveChange(message *messages.Message) error {
     body := message.GetBody()
     reader := codecs.CreateMapReader(body)
-    //pid := int(reader.IntValueOf(messages.ProtocolKeyId, 0))
     vmFree := int(reader.IntValueOf(messages.ProtocolKeyValue, 0))
-    //unixAddr := reader.StrValueOf(messages.ProtocolKeyUnixAddr, "")
-
-    //utils.LogInfo(">>> Slave %s 上报.", message.GetSource())
-    //si := SlaveInfo{pid: pid, host: strings.Split(message.GetSource(), ":")[0], vmFree: vmFree, unixAddr: unixAddr}
-    //addSlave(message.GetController().GetSessionID(), si)
     updateSlave(message.GetController().GetSessionID(), vmFree)
-
     message.GetController().SetTag(messages.ProtocolTagSlave)
-
     notifySlaveChange(message.GetController().GetSessionID())
     return nil
 }
@@ -285,16 +214,10 @@ func OnAdapterSayHello(message *messages.Message) error {
 func OnAdapterChange(message *messages.Message) error {
     body := message.GetBody()
     reader := codecs.CreateMapReader(body)
-    //pid := int(reader.IntValueOf(messages.ProtocolKeyId, 0))
     connection := int(reader.IntValueOf(messages.ProtocolKeyValue, 0))
-    //unixAddr := reader.StrValueOf(messages.ProtocolKeyUnixAddr, "")
-    //unixMsgAddr := reader.StrValueOf(messages.ProtocolKeyUnixMsgAddr, "")
 
-    //ai := AdapterInfo{pid: pid, host: strings.Split(message.GetSource(), ":")[0], connection: connection, unixAddr: unixAddr, unixMsgAddr: unixMsgAddr}
     updateAdapter(message.GetController().GetSessionID(), connection)
-
     message.GetController().SetTag(messages.ProtocolTagAdapter)
-
     notifyAdapterChange(message.GetController().GetSessionID())
 
     return nil
