@@ -14,11 +14,14 @@ func OnBye(c nnet.Controller) error {
     if c.GetTag() == messages.ProtocolTagAdapter {
         notifyAdapterBye(c.GetSessionID())
         delAdapter(c.GetSessionID())
+        utils.LogInfo("Adapter-Bye %s", c.GetSource())
     } else if c.GetTag() == messages.ProtocolTagSlave {
         notifySlaveBye(c.GetSessionID())
         delSlave(c.GetSessionID())
+        utils.LogInfo("Slave-Bye %s", c.GetSource())
     } else if c.GetTag() == messages.ProtocolTagClient {
         delGateway(c.GetSessionID())
+        utils.LogInfo("Gateway-Bye %s", c.GetSource())
     }
     return nil
 }
@@ -54,11 +57,13 @@ func notifySlaveCome(sessionid nnet.SessionID, si SlaveInfo) {
 func notifyAdapterCome(sessionid nnet.SessionID, ai AdapterInfo) {
 
     var targets = make([]nnet.SessionID, 0)
-    adapterLock.Lock()
+    utils.LogInfo("notifyAdapterCome Lock")
+    gatewayLock.Lock()
     for k := range GlobalGateways {
         targets = append(targets, k)
     }
-    adapterLock.Unlock()
+    gatewayLock.Unlock()
+    utils.LogInfo("notifyAdapterCome Unlock", targets)
 
     msg := messages.CreateS2SMessage(messages.ProtocolTypeAdapterCome)
 
@@ -78,6 +83,8 @@ func notifyAdapterCome(sessionid nnet.SessionID, ai AdapterInfo) {
         for _, v := range targets {
             tcp.Send(v, pck)
         }
+    } else {
+        utils.LogInfo("操你妈的我他妈连消息编码都失败！！！！！")
     }
 }
 
@@ -122,11 +129,13 @@ func notifyAdapterChange(sessionid nnet.SessionID) {
     }
 
     var targets = make([]nnet.SessionID, 0)
-    adapterLock.Lock()
+    utils.LogInfo("notifyAdapterChange Lock")
+    gatewayLock.Lock()
     for k := range GlobalGateways {
         targets = append(targets, k)
     }
-    adapterLock.Unlock()
+    gatewayLock.Unlock()
+    utils.LogInfo("notifyAdapterChange Unlock", targets)
 
     msg := messages.CreateS2SMessage(messages.ProtocolTypeAdapterChange)
 
@@ -173,13 +182,15 @@ func notifySlaveBye(sessionid nnet.SessionID) {
 }
 
 func notifyAdapterBye(sessionid nnet.SessionID) {
-
     var targets = make([]nnet.SessionID, 0)
-    adapterLock.Lock()
+    utils.LogInfo("notifyAdapterBye Lock")
+    gatewayLock.Lock()
     for k := range GlobalGateways {
         targets = append(targets, k)
     }
-    adapterLock.Unlock()
+    gatewayLock.Unlock()
+    utils.LogInfo("notifyAdapterBye Unlock", targets)
+
 
     msg := messages.CreateS2SMessage(messages.ProtocolTypeAdapterBye)
 
@@ -365,11 +376,19 @@ func OnAdapterDeliver(message *messages.Message) error {
     }
     return nil
 }
+
+func OnFlowReturn(message *messages.Message) error {
+    to := message.GetSearial()
+    tcp.Send(uint64(to), message.GetSrcData())
+    return nil
+}
+
 type AdapterMessageObject struct {
 }
 
 func (receiver AdapterMessageObject) GetMappedTypes() (map[int]messages.MessageProcFunc) {
     msgMap := make(map[int]messages.MessageProcFunc)
     msgMap[messages.ProtocolTypeDeliver] = OnAdapterDeliver
+    msgMap[messages.ProtocolTypeFlowReturn] = OnFlowReturn
     return msgMap
 }
