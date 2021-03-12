@@ -25,7 +25,7 @@ var (
     daemon   bool
     setsided bool
 
-    addr       string
+    addr string
 
     pprofFile string
 
@@ -33,7 +33,7 @@ var (
     logLevel = utils.LogLevelVerbose
     pidFile  string
 
-    tcp      *nnet.TCPServer = nil
+    tcp *nnet.TCPServer = nil
 
     ErrorPacketNotDict = errors.Errorf("消息封包主体不是字典")
 )
@@ -127,7 +127,6 @@ func main() {
         utils.LogError("!!!无法在 %s 上启动监听", addr, err)
         tcp.Close()
     }
-
 
     utils.LogInfo(">>> 当前协程数量 > %d", runtime.NumGoroutine())
 

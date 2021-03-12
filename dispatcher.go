@@ -9,7 +9,6 @@ import (
     "github.com/packing/nbpy/utils"
 )
 
-
 func OnBye(c nnet.Controller) error {
     if c.GetTag() == messages.ProtocolTagAdapter {
         notifyAdapterBye(c.GetSessionID())
@@ -251,7 +250,7 @@ func OnGatewaySayHello(message *messages.Message) error {
 type MasterMessageObject struct {
 }
 
-func (receiver MasterMessageObject) GetMappedTypes() (map[int]messages.MessageProcFunc) {
+func (receiver MasterMessageObject) GetMappedTypes() map[int]messages.MessageProcFunc {
     msgMap := make(map[int]messages.MessageProcFunc)
     msgMap[messages.ProtocolTypeSlaveHello] = OnSlaveSayHello
     msgMap[messages.ProtocolTypeAdapterHello] = OnAdapterSayHello
@@ -271,10 +270,11 @@ func OnSlaveDeliver(message *messages.Message) error {
     }
     return nil
 }
+
 type SlaveMessageObject struct {
 }
 
-func (receiver SlaveMessageObject) GetMappedTypes() (map[int]messages.MessageProcFunc) {
+func (receiver SlaveMessageObject) GetMappedTypes() map[int]messages.MessageProcFunc {
     msgMap := make(map[int]messages.MessageProcFunc)
     msgMap[messages.ProtocolTypeDeliver] = OnSlaveDeliver
     return msgMap
@@ -309,7 +309,7 @@ func OnFlowReturn(message *messages.Message) error {
 type AdapterMessageObject struct {
 }
 
-func (receiver AdapterMessageObject) GetMappedTypes() (map[int]messages.MessageProcFunc) {
+func (receiver AdapterMessageObject) GetMappedTypes() map[int]messages.MessageProcFunc {
     msgMap := make(map[int]messages.MessageProcFunc)
     msgMap[messages.ProtocolTypeDeliver] = OnAdapterDeliver
     msgMap[messages.ProtocolTypeFlowReturn] = OnFlowReturn
