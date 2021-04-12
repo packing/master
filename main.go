@@ -9,13 +9,13 @@ import (
     "runtime/pprof"
     "syscall"
 
-    "github.com/packing/nbpy/codecs"
-    "github.com/packing/nbpy/env"
-    "github.com/packing/nbpy/errors"
-    "github.com/packing/nbpy/messages"
-    "github.com/packing/nbpy/nnet"
-    "github.com/packing/nbpy/packets"
-    "github.com/packing/nbpy/utils"
+    "github.com/packing/clove/codecs"
+    "github.com/packing/clove/env"
+    "github.com/packing/clove/errors"
+    "github.com/packing/clove/messages"
+    "github.com/packing/clove/nnet"
+    "github.com/packing/clove/packets"
+    "github.com/packing/clove/utils"
 )
 
 var (
@@ -23,7 +23,6 @@ var (
     version bool
 
     daemon   bool
-    setsided bool
 
     addr string
 
@@ -53,7 +52,6 @@ func main() {
     flag.BoolVar(&help, "h", false, "help message")
     flag.BoolVar(&version, "v", false, "print version")
     flag.BoolVar(&daemon, "d", false, "run at daemon")
-    flag.BoolVar(&setsided, "s", false, "already run at daemon")
     flag.StringVar(&pprofFile, "f", "", "pprof file")
     flag.StringVar(&addr, "a", "127.0.0.1:10088", "listen addr")
     flag.Usage = usage
@@ -76,7 +74,7 @@ func main() {
     if !daemon {
         logDir = ""
     } else {
-        if !setsided {
+        if os.Getppid() != 1 {
             utils.Daemon()
             return
         }

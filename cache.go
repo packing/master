@@ -3,9 +3,9 @@ package main
 import (
     "sync"
 
-    "github.com/packing/nbpy/codecs"
-    "github.com/packing/nbpy/messages"
-    "github.com/packing/nbpy/nnet"
+    "github.com/packing/clove/codecs"
+    "github.com/packing/clove/messages"
+    "github.com/packing/clove/nnet"
 )
 
 type SlaveInfo struct {
