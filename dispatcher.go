@@ -306,6 +306,13 @@ func OnFlowReturn(message *messages.Message) error {
     return nil
 }
 
+func OnKill(message *messages.Message) error {
+    eachAdapters(func(k nnet.SessionID, v AdapterInfo) {
+        tcp.Send(k, message.GetSrcData())
+    })
+    return nil
+}
+
 type AdapterMessageObject struct {
 }
 
@@ -313,5 +320,6 @@ func (receiver AdapterMessageObject) GetMappedTypes() map[int]messages.MessagePr
     msgMap := make(map[int]messages.MessageProcFunc)
     msgMap[messages.ProtocolTypeDeliver] = OnAdapterDeliver
     msgMap[messages.ProtocolTypeFlowReturn] = OnFlowReturn
+    msgMap[messages.ProtocolTypeKillClient] = OnKill
     return msgMap
 }
