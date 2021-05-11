@@ -13,14 +13,14 @@ func OnBye(c nnet.Controller) error {
     if c.GetTag() == messages.ProtocolTagAdapter {
         notifyAdapterBye(c.GetSessionID())
         delAdapter(c.GetSessionID())
-        utils.LogInfo("Adapter-Bye %s", c.GetSource())
+        utils.LogInfo("Adapter %s 离线", c.GetSource())
     } else if c.GetTag() == messages.ProtocolTagSlave {
         notifySlaveBye(c.GetSessionID())
         delSlave(c.GetSessionID())
-        utils.LogInfo("Slave-Bye %s", c.GetSource())
+        utils.LogInfo("Slave %s 离线", c.GetSource())
     } else if c.GetTag() == messages.ProtocolTagClient {
         delGateway(c.GetSessionID())
-        utils.LogInfo("Gateway-Bye %s", c.GetSource())
+        utils.LogInfo("Gateway %s 离线", c.GetSource())
     }
     return nil
 }

@@ -29,7 +29,7 @@ var (
     pprofFile string
 
     logDir   string
-    logLevel = utils.LogLevelVerbose
+    logLevel = utils.LogLevelInfo
     pidFile  string
 
     tcp *nnet.TCPServer = nil
